@@ -1,0 +1,52 @@
+{
+    "name": "Event Navigation Tweaks",
+
+    "namespace": "MCRI\\EventNavigationTweaks",
+
+    "authors": [
+        {
+            "name": "Luke Stevens",
+            "email": "luke.stevens@mcri.edu.au",
+            "institution": "Murdoch Children's Research Institute"
+        }
+    ],
+
+    "description": "Enhanced navigation of events and arms on data entry forms, and on the \"Add / Edit Records\" page and \"Record Status Dashboard\" page in multi-arm projects.<br><br>Configuration options (all disabled by default):<ul><li>Show event change popover button next to event name on data entry forms?</li><li>Display buttons for navigating between arms for current record on the Record Home page? (Affects multi-arm projects only.)</li><li>Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)</li></ul>",
+
+    "framework-version": 3,
+    
+    "compatibility": {
+        "redcap-version-min": "9.1.1"
+    },
+ 
+   "permissions": [
+        "redcap_every_page_top",
+        "redcap_data_entry_form_top"
+    ],
+
+    "enable-every-page-hooks-on-system-pages": false,
+
+    "links": {
+    },
+
+    "system-settings": [
+    ],
+
+    "project-settings": [
+        {
+            "key": "data-entry-form-event-nav",
+            "name": "Show event change popover button next to event name on data entry forms?",
+            "type": "checkbox"
+        },
+        {
+            "key": "record-home-arm-nav",
+            "name": "Display buttons for navigating between arms for current record on the Record Home page?<br>(Affects multi-arm projects only.)",
+            "type": "checkbox"
+        },
+        {
+            "key": "primary-arm",
+            "name": "Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)",
+            "type": "checkbox"
+        }
+    ]
+}

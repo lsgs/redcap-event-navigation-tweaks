@@ -1,0 +1,333 @@
+<?php
+/**
+ * Event Navigation Tweaks
+ * 
+ * Provides enhancements to navigation of events and arms on data entry forms, the "Add / Edit Records" page, the "Record Status Dashboard" page, and "Record Home" page.
+ */
+namespace MCRI\EventNavigationTweaks;
+
+use ExternalModules\AbstractExternalModule;
+
+class EventNavigationTweaks extends AbstractExternalModule
+{
+        public function redcap_data_entry_form_top($project_id, $record, $instrument, $event_id, $group_id, $repeat_instance) {
+                global $Proj, $lang;
+                if (!\REDCap::isLongitudinal()) { return; }
+                if( !$this->framework->getProjectSetting('data-entry-form-event-nav') ) { return; }
+                
+                $popoverContent = $this->makeEventNavPopoverContent($instrument);
+                
+                foreach (array('west-event-nav','center-event-nav') as $id) {
+                        echo '<button id="'.$id.'" type="button" class="ml-1 btn btn-xs btn-outline-dark" data-toggle="popover" data-content="'.$popoverContent.'"><i class="fas fa-arrows-alt-h event-nav-icon"></i> '.$lang['dataqueries_95'].'</button>'; // "Change"
+                }
+
+                ?>
+                <style type="text/css">
+                    #west-event-nav, #center-event-nav { display: none; }
+                    .popover { max-width: 750px; width: 750px; }
+                    .event-nav-hdr { border-bottom: 1px solid #888; }
+                    .event-nav-row { border-top: 1px solid #ddd; }
+                    .event-nav-row-current { background-color: #fafafa; }
+                    .event-nav-icon:hover { color: white; }
+                </style>
+                <script type="text/javascript">
+                    $(document).ready(function() {
+                        var wnav = $('#west-event-nav');
+                        $('.menuboxsub:contains("Event:") > div:eq(1)').append(wnav);
+                        wnav.show();
+                        var cnav = $('#center-event-nav');
+                        $('#contextMsg > div:eq(1) > span').append(cnav);
+                        cnav.show();
+                        $('[data-toggle="popover"]').popover({
+                            placement : 'bottom',
+                            html : true,
+                            title : 'Event Navigation: <a href="#" class="close" data-dismiss="alert"><i class="fas fa-times"></i></a>'
+                        });
+                        $(document).on("click", ".popover .close" , function(){
+                            $(this).parents(".popover").popover('hide');
+                        });
+                    });
+                </script>
+                <?php
+        }
+        
+        public function redcap_every_page_top($project_id) {
+                global $Proj;
+                if (!$Proj->multiple_arms) { return; }
+                if (PAGE==='DataEntry/record_home.php' && !isset($_GET['id'])) {
+                        $this->includeAddEditRecordsPageContent();
+                } else if (PAGE==='DataEntry/record_home.php' && isset($_GET['id'])) {
+                        $this->includeRecordHomePageContent();
+                } else if (PAGE==='DataEntry/record_status_dashboard.php' && !isset($_GET['id'])) {
+                        $this->includeDashboardPageContent();
+                }
+        }
+        
+        protected function makeEventNavPopoverContent($currentInstrument='') {
+                global $Proj, $lang;
+                // read all form status values for current record
+                $record = $_GET['id'];
+                $statusFields = array();
+                
+                $recordEvents = $this->getRecordEvents($record);
+                $recordArms = array();
+                $eventArmNum = array();
+                
+                foreach ($Proj->events as $armNum => $armAttr) {
+                        // is record present in any of this arm's events?
+                        if (count(array_intersect($recordEvents, array_keys($armAttr['events'])))> 0 ) {
+                                $recordArms[] = $armNum;
+                        }
+                        foreach (array_keys($armAttr['events']) as $thisArmEvent) {
+                                $eventArmNum[$thisArmEvent] = $armNum;
+                        }
+                }
+                
+                foreach (array_keys($Proj->forms) as $thisInstrument) {
+                        $statusFields[] = $thisInstrument.'_complete';
+                }
+                $recordData = \REDCap::getData(array(
+                    'return_format' => 'array',
+                    'records' => $record,
+                    'fields' => $statusFields
+                ));
+                
+                $currentInstrumentName = \REDCap::getInstrumentNames($currentInstrument);
+                
+                $html = '<div class=\'container\'>';
+                $html .= '<div class=\'row event-nav-hdr\'\'>';
+                $html .= '<div class=\'col-6 font-weight-bold\'>'.$lang['global_10'].'</div>'; // "Event Name"
+                $html .= '<div class=\'col-3 font-weight-bold\'>'.$lang['global_89'].' 1</div>'; // "Instrument"
+                $html .= '<div class=\'col-3 font-weight-bold\'>'.\REDCap::escapeHtml($currentInstrumentName).'</div>';
+                $html .= '</div>';
+                
+                foreach ($Proj->events as $thisArmNum => $thisArmAttr) {
+
+                        if (!in_array($thisArmNum, $recordArms)) { continue; } // skip events in arms where record does not exist
+                        
+                        foreach (array_keys($thisArmAttr['events']) as $eventId) {
+                                $eventData = $recordData[$record][$eventId];
+                                $eventFirstInstrument = $Proj->eventsForms[$eventId][0];
+                                $eventFirstInstrumentStatus = (array_key_exists($eventFirstInstrument.'_complete', $eventData)) ? $eventData[$eventFirstInstrument.'_complete'] : '';
+                                $currentInstrumentStatus = (array_key_exists($currentInstrument.'_complete', $eventData)) ? $eventData[$currentInstrument.'_complete'] : '';
+
+                                $html .= $this->makeNavRow($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus, $currentInstrument, $currentInstrumentStatus);
+                        }
+                }
+                
+                $html .= '</div>';
+                
+                return $html;
+
+        }
+
+        protected function makeNavRow($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus, $currentInstrument, $currentInstrumentStatus) {
+                global $Proj;
+                $eventName = \REDCap::getEventNames(false, true, $eventId);
+                $formName = \REDCap::getInstrumentNames($instrument);
+
+                $linkFirst = $this->getStatusIconLink($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus);
+                if (in_array($currentInstrument, $Proj->eventsForms[$eventId])) {
+                        $linkCurrent = $this->getStatusIconLink($record, $eventId, $currentInstrument, $currentInstrumentStatus);
+                } else {
+                        $linkCurrent = '';
+                }
+                $currentEvent = ($eventId==$_GET['event_id']) ? 'event-nav-row-current' : '';
+                
+                $html = '<div class=\'row event-nav-row '.$currentEvent.'\'>';
+                $html .= '<div class=\'col-6\'>'.\REDCap::escapeHtml($eventName).'</div>';
+                $html .= '<div class=\'col-3\'>'.$linkFirst.'</div>';
+                $html .= '<div class=\'col-3\'>'.$linkCurrent.'</div>';
+                $html .= '</div>';
+                return $html;
+        }
+        
+        protected function getStatusIconLink($record, $eventId, $instrument, $statusValue) {
+                switch ($statusValue) {
+                    case '2':
+                        $title = 'Complete';
+                        $circle = 'circle_green';
+                        break;
+                    case '1':
+                        $title = 'Unverified';
+                        $circle = 'circle_yellow';
+                        break;
+                    case '0':
+                        // is really "incomplete" or actually "no data saved"?
+                        $status = db_result(db_query("select `value` from redcap_data where project_id=".db_escape(PROJECT_ID)." and record='".db_escape($record)."' and event_id=".db_escape($eventId)." and field_name='".db_escape($instrument.'_complete')."' and coalesce(instance, '1') = 1"), 0);
+                        $circle = ($status=='0') ? 'circle_red' : 'circle_gray';
+                        break;
+                    default:
+                        $title = 'Incomplete';
+                        $circle = 'circle_gray';
+                        break;
+                }
+                $html = "<a title='$title' href='".APP_PATH_WEBROOT."DataEntry/index.php?pid=".PROJECT_ID."&page=$instrument&id=$record&event_id=$eventId'><img src='".APP_PATH_IMAGES."$circle.png' style='height:16px;width:16px;'></a>";
+                return $html;
+        }
+        
+        /**
+         * Multi-Arm Projects Add/Edit Records page
+         * - Hide arm selection dropdown lists.
+         * - Remove reference to "on arm selected" from Add button label
+         */
+        protected function includeAddEditRecordsPageContent() {
+                global $Proj, $lang;
+                if( !$this->framework->getProjectSetting('primary-arm') ) { return; }
+                // hide arm selection dropdown lists 
+                // select/enter record in first arm only
+                ?>
+                <style type="text/css">
+                    #arm_name, #arm_name_newid { display: none; }
+                </style>
+                <?php
+                if ($Proj->project['auto_inc_set']) {
+                        ?>
+                        <script type="text/javascript">
+                            $(document).ready(function() {
+                                // change "+ Add new record for the arm selected above"
+                                // to just "+ Add new record"
+                                var newLbl = '<i class="fas fa-plus"></i> <?php echo js_escape($lang['data_entry_46']); ?>';
+                                var addBtn = $('button:contains("<?php echo js_escape($lang['data_entry_46']); ?>")');
+                                addBtn.html(newLbl);
+                            });
+                        </script>
+                        <?php
+                }
+        }
+        
+        /**
+         * Multi-Arm Projects Record Stataus Dashboard page
+         * - Hide record create input/buttons except on first arm.
+         */
+        protected function includeDashboardPageContent() {
+                global $Proj, $lang;
+                $currentArm = getArm();
+                if( $this->framework->getProjectSetting('primary-arm') &&
+                    $currentArm != $Proj->firstArmNum ) {
+                        // hide new record option if not first arm
+                        ?>
+                        <script type="text/javascript">
+                            $(document).ready(function() {
+                                var autonumbering = <?php echo $Proj->project['auto_inc_set'];?>;
+                                if (autonumbering) {
+                                    // hide "+Add new record for this arm" button
+                                    $('button:contains("<?php echo js_escape($lang['data_entry_46']); ?>")').parent('div').hide();
+                                } else {
+                                    // hide input and "+Create" button
+                                    $('#inputString').parent('div').hide();
+                                }
+                            });
+                        </script>
+                        <?php
+                }
+        }
+        
+        /**
+         * Multi-Arm Projects Record Home page (with record selected)
+         * - Suppress the "NOTICE: Record ID '?' exists in another arm." message
+         * - Include arm navigation bar.
+         */
+        protected function includeRecordHomePageContent() {
+                global $Proj, $lang;
+                if( !$this->framework->getProjectSetting('record-home-arm-nav') ) { return; }
+                echo $this->makeArmNavBar();
+                ?>
+                <style type="text/css">
+                    p.red { display: none; }
+                    #armnav { display: none; margin: 0; max-width: 800px; }
+                </style>
+                <script type="text/javascript">
+                    $(document).ready(function() {
+                        $('p.red')
+                            .not(':contains("<?php echo $lang['grid_37'];?>")')
+                            .show();
+                        $('#armnav').detach().insertBefore('#record_display_name').show();
+                    });
+                </script>
+                <?php
+        }
+
+        protected function makeArmNavBar() {
+                global $Proj, $lang;
+                $textArm = $lang['global_08']; // "Arm"
+                $textArms = '<i class="fas fa-arrows-alt-h"></i> '.$lang['api_97'];
+                $textAdd = '<i class="fas fa-plus"></i> '.$lang['design_171']; // "Add"
+                $textView = '<i class="fas fa-list-alt"></i> '.$lang['global_84']; // "View"
+                
+                $armnav = '<div id="armnav" class="gray2 container"><div class="row">';
+                $armnav .= '<div class="col">'
+                        . '<span style="color:#000066;font-size:16px;">'
+                        .$textArms
+                        .'</span>'
+                        .'</div>';
+                
+                $currentArmNum = getArm();
+//                $currentArmId = $Proj->getArmIdFromArmNum($currentArmNum);
+                
+                $record = $_GET['id'];
+                $recordEvents = $this->getRecordEvents($record);
+                
+                foreach ($Proj->events as $armNum => $armAttr) {
+                        $breakAfterThis = false;
+                        $armnav .= '<div class="col">';
+                        
+                        // is record present in any of this arm's events?
+                        if (count(array_intersect($recordEvents, array_keys($armAttr['events'])))> 0 ) {
+                                $btnClass = "btn-primaryrc";
+                                $btnLbl = "$textView $textArm $armNum: {$armAttr['name']}";
+                        } else {
+                                $btnClass = "btn-success";
+                                $btnLbl = "$textAdd $textArm $armNum: {$armAttr['name']}";
+                                
+                                // if limiting record creation to first arm only
+                                // and record does not yet exist in first arm
+                                // then brak after this loop iteration
+                                if ($this->framework->getProjectSetting('primary-arm') &&
+                                    $armNum == $Proj->firstArmNum) {
+                                        $breakAfterThis = true;
+                                }
+                        }
+                        
+                        if ($armNum == $currentArmNum) {
+                                $btnClass = 'btn-secondary disabled'; // button disabled for current arm
+                                $btnLbl = "$textArm $armNum: {$armAttr['name']}";
+                                $btnHref = '#';
+                        } else {
+                                $btnHref = "./record_home.php?pid={$Proj->project_id}&arm=$armNum&id=$record";
+                        }
+
+                        $btn = "<a class=\"btn $btnClass\" href=\"$btnHref\" style=\"color:white;\">";
+                        $btn .= $btnLbl;
+                        $btn .= '</a>';
+                        $armnav .= $btn;
+                        
+                        $armnav .= '</div>';
+
+                        if ($breakAfterThis) { break; }
+                }
+                
+                $armnav .= '</div></div>';
+                return $armnav;
+        }
+        
+        /**
+         * Get array of event ids that the current record has data for 
+         * @return array Event ids that the current record has data for 
+         */
+        protected function getRecordEvents($record) {
+                global $Proj;
+                $recordData = \REDCap::getData(array(
+                    'return_format' => 'array',
+                    'records' => $record,
+                    'fields' => $Proj->table_pk
+                ));
+                
+                $events = array();
+
+                foreach (array_keys($recordData[$record]) as $eventId) {
+                        if (is_numeric($eventId)) { $events[] = $eventId; }
+                }
+                return $events;
+        }
+}
