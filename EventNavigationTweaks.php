@@ -18,7 +18,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $popoverContent = $this->makeEventNavPopoverContent($instrument);
                 
                 foreach (array('west-event-nav','center-event-nav') as $id) {
-                        echo '<button id="'.$id.'" type="button" class="ml-1 btn btn-xs btn-outline-dark" data-toggle="popover" data-content="'.$popoverContent.'"><i class="fas fa-arrows-alt-h event-nav-icon"></i> '.$lang['dataqueries_95'].'</button>'; // "Change"
+                        echo '<button id="'.$id.'" type="button" class="ml-1 btn btn-xs btn-outline-dark" data-bs-toggle="popover" data-bs-content="'.$popoverContent.'"><i class="fas fa-arrows-alt-h event-nav-icon"></i> '.$lang['dataqueries_95'].'</button>'; // "Change"
                 }
 
                 ?>
@@ -38,13 +38,13 @@ class EventNavigationTweaks extends AbstractExternalModule
                         var cnav = $('#center-event-nav');
                         $('#contextMsg > div:eq(1) > span').append(cnav);
                         cnav.show();
-                        $('[data-toggle="popover"]').popover({
+                        $('[data-bs-toggle="popover"]').popover({
                             placement : 'bottom',
                             html : true,
-                            title : 'Event Navigation: <a href="#" class="close" data-dismiss="alert"><i class="fas fa-times"></i></a>'
+                            title : 'Event Navigation: <a href="#" class="close p-1" data-dismiss="alert"><i class="fas fa-times"></i></a>'
                         });
                         $(document).on("click", ".popover .close" , function(){
-                            $(this).parents(".popover").popover('hide');
+                            $(this).parents(".popover").hide();//popover('hide');
                         });
                     });
                 </script>
@@ -66,7 +66,7 @@ class EventNavigationTweaks extends AbstractExternalModule
         protected function makeEventNavPopoverContent($currentInstrument='') {
                 global $Proj, $lang;
                 // read all form status values for current record
-                $record = $_GET['id'];
+                $record = $this->escape($_GET['id']);
                 $statusFields = array();
                 
                 $recordEvents = $this->getRecordEvents($record);
@@ -106,7 +106,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                         if (!in_array($thisArmNum, $recordArms)) { continue; } // skip events in arms where record does not exist
                         
                         foreach (array_keys($thisArmAttr['events']) as $eventId) {
-                                $eventData = $recordData[$record][$eventId];
+                                $eventData = (is_array($recordData[$record][$eventId])) ? $recordData[$record][$eventId] : array();
                                 $eventFirstInstrument = $Proj->eventsForms[$eventId][0];
                                 $eventFirstInstrumentStatus = (array_key_exists($eventFirstInstrument.'_complete', $eventData)) ? $eventData[$eventFirstInstrument.'_complete'] : '';
                                 $currentInstrumentStatus = (array_key_exists($currentInstrument.'_complete', $eventData)) ? $eventData[$currentInstrument.'_complete'] : '';
@@ -117,14 +117,14 @@ class EventNavigationTweaks extends AbstractExternalModule
                 
                 $html .= '</div>';
                 
-                return $html;
+                return \REDCap::filterHtml($html);
 
         }
 
         protected function makeNavRow($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus, $currentInstrument, $currentInstrumentStatus) {
                 global $Proj;
                 $eventName = \REDCap::getEventNames(false, true, $eventId);
-                $formName = \REDCap::getInstrumentNames($instrument);
+                $formName = \REDCap::getInstrumentNames($currentInstrument);
 
                 $linkFirst = $this->getStatusIconLink($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus);
                 if (in_array($currentInstrument, $Proj->eventsForms[$eventId])) {
@@ -139,7 +139,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $html .= '<div class=\'col-3\'>'.$linkFirst.'</div>';
                 $html .= '<div class=\'col-3\'>'.$linkCurrent.'</div>';
                 $html .= '</div>';
-                return $html;
+                return \REDCap::filterHtml($html);
         }
         
         protected function getStatusIconLink($record, $eventId, $instrument, $statusValue) {
@@ -163,7 +163,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                         break;
                 }
                 $html = "<a title='$title' href='".APP_PATH_WEBROOT."DataEntry/index.php?pid=".PROJECT_ID."&page=$instrument&id=$record&event_id=$eventId'><img src='".APP_PATH_IMAGES."$circle.png' style='height:16px;width:16px;'></a>";
-                return $html;
+                return \REDCap::filterHtml($html);
         }
         
         /**
@@ -263,7 +263,6 @@ class EventNavigationTweaks extends AbstractExternalModule
                         .'</div>';
                 
                 $currentArmNum = getArm();
-//                $currentArmId = $Proj->getArmIdFromArmNum($currentArmNum);
                 
                 $record = $_GET['id'];
                 $recordEvents = $this->getRecordEvents($record);
@@ -308,7 +307,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 }
                 
                 $armnav .= '</div></div>';
-                return $armnav;
+                return \REDCap::filterHtml($armnav);
         }
         
         /**
