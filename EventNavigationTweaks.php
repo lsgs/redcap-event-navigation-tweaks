@@ -266,7 +266,18 @@ class EventNavigationTweaks extends AbstractExternalModule
                 
                 $record = $_GET['id'];
                 $recordEvents = $this->getRecordEvents($record);
-                
+                // MGB Code modification
+                // Add control to which Arms can be displayed
+                $standardMode = FALSE;
+                if(is_null($this->getSubSettings("display-conditions")[0]["display-arms"])) {
+                    $standardMode = TRUE;
+                } else {
+                    $armnav = $this->armControl($record, $textArms,$Proj,$recordEvents,$textView,$textArm,$textAdd,$currentArmNum);
+                }
+                if(!$standardMode){
+                    return \REDCap::filterHtml($armnav);
+                }
+                // End of MGB Code modification
                 foreach ($Proj->events as $armNum => $armAttr) {
                         $breakAfterThis = false;
                         $armnav .= '<div class="col">';
@@ -329,4 +340,146 @@ class EventNavigationTweaks extends AbstractExternalModule
                 }
                 return $events;
         }
+
+    // MGB Code modification
+    protected function armControl($record, $textArms,$Proj,$recordEvents,$textView,$textArm,$textAdd,$currentArmNum)
+    {
+        $triggerField = $this->framework->getProjectSetting('display-arms');
+
+        $params = [
+            'return_format' => 'array',
+            'records' => $record,
+            'fields' => $triggerField
+        ];
+
+        $res = \REDCap::getData($params);
+        $armnav = '<div id="armnav" class="container"><div class="row"> <div class="col text-right">';
+
+        $armnav .= "</div></div><div class=\"gray2 row\">";
+        $armnav .= '<div class="col-2">'
+            . '<span style="color:#000066;font-size:16px;">'
+            . $textArms
+            . '</span>'
+            . '</div><div class="col-10">';
+
+        foreach ($triggerField as $key => $placeholder) {
+            $triggerFieldValues[$key] = $res[$record][$this->framework->getProjectSetting('corresponding-event')[$key]][$triggerField[$key]];
+        }
+
+        $listOfArms = $this->genArmListBucket($Proj);
+
+        foreach ($triggerFieldValues as $keyCond => $selectedValues) {
+            $selectedArms = strpos($selectedValues, ',') == FALSE ? array(0 => $selectedValues) : explode(",", $selectedValues);
+//                    $selectedArms = explode(",", $selectedValues);
+            foreach ($Proj->events as $armNum => $armAttr) {
+                // Add control to which arms are displayed
+                if (in_array($armNum, $selectedArms) && $listOfArms[$armNum] == FALSE) {
+                    // Flag Arm array as already being included in $armnav so it's not included a second time
+                    $listOfArms[$armNum] = TRUE;
+
+                    $breakAfterThis = false;
+
+                    // is record present in any of this arm's events?
+                    if (count(array_intersect($recordEvents, array_keys($armAttr['events']))) > 0) {
+                        $btnClass = "btn-primaryrc";
+                        $btnLbl = "$textView $textArm $armNum: {$armAttr['name']}";
+                    } else {
+                        $btnClass = "btn-success";
+                        $btnLbl = "$textAdd $textArm $armNum: {$armAttr['name']}";
+
+                        // if limiting record creation to first arm only
+                        // and record does not yet exist in first arm
+                        // then break after this loop iteration
+                        if ($this->framework->getProjectSetting('primary-arm') &&
+                            $armNum == $Proj->firstArmNum) {
+                            $breakAfterThis = true;
+                        }
+                    }
+
+                    if ($armNum == $currentArmNum) {
+                        $btnClass = 'btn-secondary disabled'; // button disabled for current arm
+                        $btnLbl = "$textArm $armNum: {$armAttr['name']}";
+                        $btnHref = '#';
+                    } else {
+                        $btnHref = "./record_home.php?pid={$Proj->project_id}&arm=$armNum&id=" . htmlspecialchars($record, ENT_QUOTES, 'UTF-8');
+                    }
+
+                    $btn = "<a class=\"btn $btnClass\" href=\"$btnHref\" style=\"color:white;margin: 5px\">";
+                    $btn .= $btnLbl;
+                    $btn .= '</a>';
+                    $listOfArmsButtons[$armNum] = $btn;
+
+                    if ($breakAfterThis) {
+                        break;
+                    }
+                }
+            }
+
+            // Add the study arms configured as on-demand (that is, study arms available by default).
+            $selectedArmsIDs = $this->framework->getProjectSetting('on-demand-arm-names');
+            foreach ($Proj->events as $armNum => $armAttr) {
+                // Add control to which arms are displayed
+                if (in_array($armAttr['id'], $selectedArmsIDs) && $listOfArms[$armNum] == FALSE) {
+                    // Flag Arm array as already being included in $armnav so it's not included a second time
+                    $listOfArms[$armNum] = TRUE;
+
+                    $breakAfterThis = false;
+
+                    // is record present in any of this arm's events?
+                    if (count(array_intersect($recordEvents, array_keys($armAttr['events']))) > 0) {
+                        $btnClass = "btn-primaryrc";
+                        $btnLbl = "$textView $textArm $armNum: {$armAttr['name']}";
+                    } else {
+                        $btnClass = "btn-success";
+                        $btnLbl = "$textAdd $textArm $armNum: {$armAttr['name']}";
+
+                        // if limiting record creation to first arm only
+                        // and record does not yet exist in first arm
+                        // then break after this loop iteration
+                        if ($this->framework->getProjectSetting('primary-arm') &&
+                            $armNum == $Proj->firstArmNum) {
+                            $breakAfterThis = true;
+                        }
+                    }
+
+                    if ($armNum == $currentArmNum) {
+                        $btnClass = 'btn-secondary disabled'; // button disabled for current arm
+                        $btnLbl = "$textArm $armNum: {$armAttr['name']}";
+                        $btnHref = '#';
+                    } else {
+                        $btnHref = "./record_home.php?pid={$Proj->project_id}&arm=$armNum&id=" . htmlspecialchars($record, ENT_QUOTES, 'UTF-8');
+                    }
+
+                    $btn = "<a class=\"btn $btnClass\" href=\"$btnHref\" style=\"color:white;margin: 5px\">";
+                    $btn .= $btnLbl;
+                    $btn .= '</a>';
+
+                    $listOfArmsButtons[$armNum] = $btn;
+
+                    if ($breakAfterThis) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if( !is_null($listOfArmsButtons)) {
+            // Print sorted list of buttons into $armnav
+            ksort($listOfArmsButtons);
+            foreach ($listOfArmsButtons as $item => $buttonScript) {
+                $armnav .= $buttonScript;
+            }
+        }
+
+        return $armnav .= '</div></div></div>';
+    }
+    protected function genArmListBucket($Proj)
+    {
+        foreach ($Proj->events as $armNum => $armAttr) {
+            $armsListBucket[$armNum] = FALSE;
+        }
+        return $armsListBucket;
+    }
+    // End of MGB Code modification
+    
 }
