@@ -11,9 +11,13 @@
         }
     ],
 
-    "description": "Enhanced navigation of events and arms on data entry forms, and on the \"Add / Edit Records\" page and \"Record Status Dashboard\" page in multi-arm projects.<br><br>Configuration options (all disabled by default):<ul><li>Show event change popover button next to event name on data entry forms?</li><li>Display buttons for navigating between arms for current record on the Record Home page? (Affects multi-arm projects only.)</li><li>Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)</li></ul>",
+    "description": "Enhanced navigation of events and arms on data entry forms, and on the \"Add / Edit Records\" page and \"Record Status Dashboard\" page in multi-arm projects.<br><br>Configuration options (all disabled by default):<ul><li>Show event change popover button next to event name on data entry forms?</li><li>Display buttons for navigating between arms for current record on the Record Home page? (Affects multi-arm projects only.)</li><li>Control the arms available for a record based on a comma separated list produced by a @CALCTEXT action-tag.</li><li>Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)</li></ul>",
 
     "framework-version": 13,
+
+    "compatibility": {
+        "redcap-version-min": "9.1.1"
+    },
     
     "enable-every-page-hooks-on-system-pages": false,
 
@@ -38,6 +42,42 @@
             "key": "primary-arm",
             "name": "Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)",
             "type": "checkbox"
+        },
+        {
+          "key": "descriptive-text",
+          "name": "<b>Use the following set of configuration options for controlling when an arm should be made available to a record.</b><br><br> Please note that in this version: <ul><li>only @CALCTEXT fields are supported</li><li>the calculatation must be of the form: <br>@CALCTEXT(if(condition,comma-delimited-list-of-arms-when-TRUE,comma-delimited-list-of-arms-when-FALSE))</li><li>i.e. @CALCTEXT(if([gender]==1,'1,3,7',''))</li><li>you can include as many @CALCTEXT as needed</li><li>if the option \"Make first arm the primary arm?\" is selected above, the first arm will be displayed even if it's not included in the @CALCTEXT result</li></ul>",
+          "type": "descriptive"
+        },
+      {
+        "key": "display-conditions",
+        "name": "Select the @CALCTEXT field, with its corresponding event, indicating which arms should be made available to the record ",
+        "required": false,
+        "allow-project-overrides": false,
+        "type": "sub_settings",
+        "repeatable": true,
+        "sub_settings": [
+          {
+            "key": "display-arms",
+            "name": "Comma delimited list of arms to display",
+            "type": "field-list"
+          },
+          {
+            "key": "corresponding-event",
+            "name": "Corresponding Event",
+            "type": "event-list"
+          }
+        ]
+      },
+      {
+        "key": "descriptive-text-2",
+        "name": "<b>Select the arms that can be added on-demand (by default) on every record (leave field blank to disable option.)</b>",
+        "type": "descriptive"
+      },
+      {
+        "key": "on-demand-arm-names",
+        "name": "Select arm name",
+        "repeatable": true,
+        "type": "arm-list"
         }
     ]
 }
