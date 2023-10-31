@@ -1,8 +1,6 @@
 {
     "name": "Event Navigation Tweaks",
-
     "namespace": "MCRI\\EventNavigationTweaks",
-
     "authors": [
         {
             "name": "Luke Stevens",
@@ -10,74 +8,73 @@
             "institution": "Murdoch Children's Research Institute"
         }
     ],
-
     "description": "Enhanced navigation of events and arms on data entry forms, and on the \"Add / Edit Records\" page and \"Record Status Dashboard\" page in multi-arm projects.<br><br>Configuration options (all disabled by default):<ul><li>Show event change popover button next to event name on data entry forms?</li><li>Display buttons for navigating between arms for current record on the Record Home page? (Affects multi-arm projects only.)</li><li>Control the arms available for a record based on a comma separated list produced by a @CALCTEXT action-tag.</li><li>Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)</li></ul>",
-
-    "framework-version": 13,
-
-    "compatibility": {
-        "redcap-version-min": "9.1.1"
-    },
-    
-    "enable-every-page-hooks-on-system-pages": false,
-
-    "links": {
-    },
-
-    "system-settings": [
-    ],
-
+    "framework-version": 14,
     "project-settings": [
+        {
+            "key": "desc1",
+            "name": "<span class=\"fs-6 badge bg-primary\">Event Navigation</span>",
+            "type": "descriptive"
+        },
         {
             "key": "data-entry-form-event-nav",
             "name": "Show event change popover button next to event name on data entry forms?",
             "type": "checkbox"
         },
         {
+            "key": "desc2",
+            "name": "<span class=\"fs-6 badge bg-primary\">Arm Navigation</span> The following settings apply only within multi-arm projects.",
+            "type": "descriptive"
+        },
+        {
             "key": "record-home-arm-nav",
-            "name": "Display buttons for navigating between arms for current record on the Record Home page?<br>(Affects multi-arm projects only.)",
+            "name": "Display buttons on the Record Home page for navigating between arms for current record?",
             "type": "checkbox"
         },
         {
             "key": "primary-arm",
-            "name": "Make first arm the primary arm? (Records must exist in first arm before being added to others.<br>(Affects multi-arm projects only.)",
+            "name": "Make first arm the primary arm?<br>(Records must exist in first arm before being added to others.)",
             "type": "checkbox"
         },
         {
-          "key": "descriptive-text",
-          "name": "<b>Use the following set of configuration options for controlling when an arm should be made available to a record.</b><br><br> Please note that in this version: <ul><li>only @CALCTEXT fields are supported</li><li>the calculatation must be of the form: <br>@CALCTEXT(if(condition,comma-delimited-list-of-arms-when-TRUE,comma-delimited-list-of-arms-when-FALSE))</li><li>i.e. @CALCTEXT(if([gender]==1,'1,3,7',''))</li><li>you can include as many @CALCTEXT as needed</li><li>if the option \"Make first arm the primary arm?\" is selected above, the first arm will be displayed even if it's not included in the @CALCTEXT result</li></ul>",
-          "type": "descriptive"
+            "key": "desc3",
+            "name": "<span class=\"fs-6 badge bg-secondary\">Allowed Arms</span> Control which arms are visible or available for records.",
+            "type": "descriptive"
         },
-      {
-        "key": "display-conditions",
-        "name": "Select the @CALCTEXT field, with its corresponding event, indicating which arms should be made available to the record ",
-        "required": false,
-        "allow-project-overrides": false,
-        "type": "sub_settings",
-        "repeatable": true,
-        "sub_settings": [
-          {
-            "key": "display-arms",
-            "name": "Comma delimited list of arms to display",
-            "type": "field-list"
-          },
-          {
-            "key": "corresponding-event",
-            "name": "Corresponding Event",
-            "type": "event-list"
-          }
-        ]
-      },
-      {
-        "key": "descriptive-text-2",
-        "name": "<b>Select the arms that can be added on-demand (by default) on every record (leave field blank to disable option.)</b>",
-        "type": "descriptive"
-      },
-      {
-        "key": "on-demand-arm-names",
-        "name": "Select arm name",
-        "repeatable": true,
-        "type": "arm-list"
+        {
+            "key": "desc4",
+            "name": "Arms available for records by default (leave empty for unrestricted)",
+            "type": "descriptive"
+        },
+        {
+            "key": "on-demand-arm-names",
+            "name": "Select arm name",
+            "repeatable": true,
+            "type": "arm-list"
+        },
+        {
+            "key": "desc5",
+            "name": "Event(s)/Field(s) containing available arms<p>Note:<ul><li>Where specifying a text/@CALCTEXT field a dynamic comma-separated list of arms is supported. e.g. <code>@CALCTEXT(if(<expr>,'comma-delimited-list-of-arms-when-TRUE','comma-delimited-list-of-arms-when-FALSE'))</code></li><li>Specification of arms across multiple fields here is cumulative.</li><li>if the option \"Make first arm the primary arm?\" is selected above, the first arm will be displayed even if it's not included in the field's list</li></ul></p>",
+            "type": "descriptive"
+        },
+        {
+            "key": "display-conditions",
+            "name": "Event(s)/field(s) indicating arms available for the current record",
+            "required": false,
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "key": "display-arms",
+                    "name": "Field containing arm number or list of arm numbers",
+                    "type": "field-list"
+                },
+                {
+                    "key": "corresponding-event",
+                    "name": "Corresponding Event",
+                    "type": "event-list"
+                }
+            ]
         }
     ]
 }

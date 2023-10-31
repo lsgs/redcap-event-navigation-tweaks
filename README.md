@@ -42,3 +42,16 @@ Create record option only shown when viewing the primary arm instead of for any 
 ![Dashboard page](./img/rsdpage.png)
 
 This option has no effect in single-arm projects.
+
+### 4. Control of Arm Visibility
+
+#### Arms Available by Default
+Select an arm or arms to be available by default for records. 
+
+#### Utilise Field Data to Control Arm Visibility
+Indicate event(s) and field(s) that contain arm numbers, or comma-separated lists of arm numbers that are available for the current record to be added to.
+* Where specifying a text/`@CALCTEXT` field a dynamic comma-separated list of arms is supported. e.g. `"2,4,5"`, as might be given by:
+
+  `@CALCTEXT(if(<expr>,'comma-delimited-list-of-arms-when-TRUE','comma-delimited-list-of-arms-when-FALSE'))`
+* Specification of arms across multiple fields here is cumulative.
+* If the option "Make first arm the primary arm?" is selected, the first arm will be displayed even when not included in the field's list.

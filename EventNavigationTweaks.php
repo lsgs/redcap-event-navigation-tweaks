@@ -154,8 +154,10 @@ class EventNavigationTweaks extends AbstractExternalModule
                         break;
                     case '0':
                         // is really "incomplete" or actually "no data saved"?
-                        $status = db_result(db_query("select `value` from redcap_data where project_id=".db_escape(PROJECT_ID)." and record='".db_escape($record)."' and event_id=".db_escape($eventId)." and field_name='".db_escape($instrument.'_complete')."' and coalesce(instance, '1') = 1"), 0);
-                        $circle = ($status=='0') ? 'circle_red' : 'circle_gray';
+                        $redcap_data = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->getProjectId()) : "redcap_data"; 
+                        $sql = "select `value` from $redcap_data where project_id=? and record=? and event_id=? and field_name=? and coalesce(instance, '1')=1 and `value`='0'";
+                        $q = $this->query($sql, [$this->getProjectId(), $record, $eventId, $instrument.'_complete']);
+                        $circle = ($q->num_rows) ? 'circle_red' : 'circle_gray';
                         break;
                     default:
                         $title = 'Incomplete';
@@ -268,9 +270,9 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $recordEvents = $this->getRecordEvents($record);
                 // MGB Code modification
                 // Add control to which Arms can be displayed
-                $standardMode = FALSE;
+                $standardMode = false;
                 if(is_null($this->getSubSettings("display-conditions")[0]["display-arms"])) {
-                    $standardMode = TRUE;
+                    $standardMode = true;
                 } else {
                     $armnav = $this->armControl($record, $textArms,$Proj,$recordEvents,$textView,$textArm,$textAdd,$currentArmNum);
                 }
@@ -369,8 +371,7 @@ class EventNavigationTweaks extends AbstractExternalModule
         $listOfArms = $this->genArmListBucket($Proj);
 
         foreach ($triggerFieldValues as $keyCond => $selectedValues) {
-            $selectedArms = strpos($selectedValues, ',') == FALSE ? array(0 => $selectedValues) : explode(",", $selectedValues);
-//                    $selectedArms = explode(",", $selectedValues);
+            $selectedArms = strpos($selectedValues, ',') === false ? array(0 => $selectedValues) : explode(",", $selectedValues);
             foreach ($Proj->events as $armNum => $armAttr) {
                 // Add control to which arms are displayed
                 if (in_array($armNum, $selectedArms) && $listOfArms[$armNum] == FALSE) {
@@ -421,7 +422,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 // Add control to which arms are displayed
                 if (in_array($armAttr['id'], $selectedArmsIDs) && $listOfArms[$armNum] == FALSE) {
                     // Flag Arm array as already being included in $armnav so it's not included a second time
-                    $listOfArms[$armNum] = TRUE;
+                    $listOfArms[$armNum] = true;
 
                     $breakAfterThis = false;
 
@@ -447,7 +448,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                         $btnLbl = "$textArm $armNum: {$armAttr['name']}";
                         $btnHref = '#';
                     } else {
-                        $btnHref = "./record_home.php?pid={$Proj->project_id}&arm=$armNum&id=" . htmlspecialchars($record, ENT_QUOTES, 'UTF-8');
+                        $btnHref = "./record_home.php?pid={$Proj->project_id}&arm=$armNum&id=".$this->escape($record);
                     }
 
                     $btn = "<a class=\"btn $btnClass\" href=\"$btnHref\" style=\"color:white;margin: 5px\">";
