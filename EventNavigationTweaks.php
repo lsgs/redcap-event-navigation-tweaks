@@ -334,6 +334,10 @@ class EventNavigationTweaks extends AbstractExternalModule
                     'records' => $record,
                     'fields' => $Proj->table_pk
                 ));
+
+                if ($recordData[$record] == null) {
+                        return $events;  // null ??? is it useful or safe on the calling end, if we get a null, of getRecordEvents
+                }                
                 
                 $events = array();
 
