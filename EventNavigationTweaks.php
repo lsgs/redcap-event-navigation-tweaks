@@ -18,7 +18,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $popoverContent = $this->makeEventNavPopoverContent($instrument);
                 
                 foreach (array('west-event-nav','center-event-nav') as $id) {
-                        echo '<button id="'.$id.'" type="button" class="ml-1 btn btn-xs btn-outline-dark" data-bs-toggle="popover" data-bs-content="'.$popoverContent.'"><i class="fas fa-arrows-alt-h event-nav-icon"></i> '.$lang['dataqueries_95'].'</button>'; // "Change"
+                        echo '<button id="'.$id.'" type="button" class="ml-1 btn btn-xs btn-outline-dark" data-bs-toggle="popover" data-bs-content="'.$popoverContent.'"><i class="fas fa-arrows-alt-h event-nav-icon"></i> '. ($lang['dataqueries_95'] ?? "UNK") .'</button>'; // "Change"
                 }
 
                 ?>
@@ -106,8 +106,12 @@ class EventNavigationTweaks extends AbstractExternalModule
                         if (!in_array($thisArmNum, $recordArms)) { continue; } // skip events in arms where record does not exist
                         
                         foreach (array_keys($thisArmAttr['events']) as $eventId) {
+                            if (array_key_exists($eventId, $recordData[$record])) {
                                 $eventData = (is_array($recordData[$record][$eventId])) ? $recordData[$record][$eventId] : array();
-                                $eventFirstInstrument = $Proj->eventsForms[$eventId][0];
+                            } else {
+                                $eventData = [];
+                            }
+                                $eventFirstInstrument = $Proj->eventsForms[$eventId][0] ?? "";
                                 $eventFirstInstrumentStatus = (array_key_exists($eventFirstInstrument.'_complete', $eventData)) ? $eventData[$eventFirstInstrument.'_complete'] : '';
                                 $currentInstrumentStatus = (array_key_exists($currentInstrument.'_complete', $eventData)) ? $eventData[$currentInstrument.'_complete'] : '';
 
@@ -127,7 +131,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $formName = \REDCap::getInstrumentNames($currentInstrument);
 
                 $linkFirst = $this->getStatusIconLink($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus);
-                if (in_array($currentInstrument, $Proj->eventsForms[$eventId])) {
+                if (in_array($currentInstrument, $Proj->eventsForms[$eventId] ?? [])) {
                         $linkCurrent = $this->getStatusIconLink($record, $eventId, $currentInstrument, $currentInstrumentStatus);
                 } else {
                         $linkCurrent = '';
@@ -154,18 +158,19 @@ class EventNavigationTweaks extends AbstractExternalModule
                         break;
                     case '0':
                         // is really "incomplete" or actually "no data saved"?
-                        $redcap_data = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->getProjectId()) : "redcap_data"; 
+                        $redcap_data = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->getProjectId()) : "redcap_data";
                         $sql = "select `value` from $redcap_data where project_id=? and record=? and event_id=? and field_name=? and coalesce(instance, '1')=1 and `value`='0'";
                         $q = $this->query($sql, [$this->getProjectId(), $record, $eventId, $instrument.'_complete']);
                         $circle = ($q->num_rows) ? 'circle_red' : 'circle_gray';
+                        $title = 'Incomplete';
                         break;
                     default:
                         $title = 'Incomplete';
                         $circle = 'circle_gray';
                         break;
                 }
-                $html = "<a title='$title' href='".APP_PATH_WEBROOT."DataEntry/index.php?pid=".PROJECT_ID."&page=$instrument&id=$record&event_id=$eventId'><img src='".APP_PATH_IMAGES."$circle.png' style='height:16px;width:16px;'></a>";
-                return \REDCap::filterHtml($html);
+                $html = "<a title='" . \REDCap::filterHtml($title) . "' href='".APP_PATH_WEBROOT."DataEntry/index.php?pid=".PROJECT_ID."&page=$instrument&id=$record&event_id=$eventId'><img src='".APP_PATH_IMAGES."$circle.png' style='height:16px;width:16px;'></a>";
+                return $html;
         }
         
         /**
