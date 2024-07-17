@@ -33,7 +33,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 <script type="text/javascript">
                     $(document).ready(function() {
                         var wnav = $('#west-event-nav');
-                        $('.menuboxsub:contains("Event:") > div:eq(1)').append(wnav);
+                        $('#data-collection-menu span[data-rc-lang="bottom_23"]').parents('div:first').append(wnav); // "Event:"
                         wnav.show();
                         var cnav = $('#center-event-nav');
                         $('#contextMsg > div:eq(1) > span').append(cnav);
@@ -108,8 +108,8 @@ class EventNavigationTweaks extends AbstractExternalModule
                         foreach (array_keys($thisArmAttr['events']) as $eventId) {
                                 $eventData = (is_array($recordData[$record][$eventId])) ? $recordData[$record][$eventId] : array();
                                 $eventFirstInstrument = $Proj->eventsForms[$eventId][0];
-                                $eventFirstInstrumentStatus = (array_key_exists($eventFirstInstrument.'_complete', $eventData)) ? $eventData[$eventFirstInstrument.'_complete'] : '';
-                                $currentInstrumentStatus = (array_key_exists($currentInstrument.'_complete', $eventData)) ? $eventData[$currentInstrument.'_complete'] : '';
+                                $eventFirstInstrumentStatus = (is_array($eventData) && array_key_exists($eventFirstInstrument.'_complete', $eventData)) ? $eventData[$eventFirstInstrument.'_complete'] : '';
+                                $currentInstrumentStatus = (is_array($eventData) && array_key_exists($currentInstrument.'_complete', $eventData)) ? $eventData[$currentInstrument.'_complete'] : '';
 
                                 $html .= $this->makeNavRow($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus, $currentInstrument, $currentInstrumentStatus);
                         }
