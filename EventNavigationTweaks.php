@@ -336,9 +336,10 @@ class EventNavigationTweaks extends AbstractExternalModule
                 ));
                 
                 $events = array();
-
-                foreach (array_keys($recordData[$record]) as $eventId) {
-                        if (is_numeric($eventId)) { $events[] = $eventId; }
+                if (array_key_exists($record, $recordData)) {
+                        foreach (array_keys($recordData[$record]) as $eventId) {
+                                if (is_numeric($eventId)) { $events[] = $eventId; }
+                        }
                 }
                 return $events;
         }
