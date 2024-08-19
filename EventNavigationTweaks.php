@@ -127,7 +127,7 @@ class EventNavigationTweaks extends AbstractExternalModule
                 $formName = \REDCap::getInstrumentNames($currentInstrument);
 
                 $linkFirst = $this->getStatusIconLink($record, $eventId, $eventFirstInstrument, $eventFirstInstrumentStatus);
-                if (in_array($currentInstrument, $Proj->eventsForms[$eventId])) {
+                if (is_array($Proj->eventsForms[$eventId]) && in_array($currentInstrument, $Proj->eventsForms[$eventId])) {
                         $linkCurrent = $this->getStatusIconLink($record, $eventId, $currentInstrument, $currentInstrumentStatus);
                 } else {
                         $linkCurrent = '';
